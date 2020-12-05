@@ -1,5 +1,6 @@
 package br.com.henricolazuroz.isbntools;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
@@ -8,70 +9,57 @@ import static org.mockito.Mockito.*;
 
 public class StockManagementTest {
 
+    IExternalISBNDataService testWebService;
+    IExternalISBNDataService testDatabaseService;
+    StockManager stockManager;
+
+    final String ISBN = "0140449116";
+
+    @Before
+    public void setup() {
+        testWebService = mock(IExternalISBNDataService.class);
+        testDatabaseService = mock(IExternalISBNDataService.class);
+        stockManager = new StockManager(testWebService, testDatabaseService);
+    }
+
     @Test
     public void testCanGetACorrectLocatorCode() {
+        when(testDatabaseService.lookup(ISBN)).thenReturn(null);
+        when(testWebService.lookup(ISBN)).thenReturn(new Book(ISBN, "Odyssey", "Homero"));
 
-        IExternalISBNDataService testWebService = new IExternalISBNDataService() {
-
-            @Override
-            public Book lookup(String isbn) {
-                return new Book(isbn, "Odyssey", "Homero");
-            }
-        };
-
-        IExternalISBNDataService testDatabaseService = new IExternalISBNDataService() {
-
-            @Override
-            public Book lookup(String isbn) {
-                return null;
-            }
-        };
-
-        String isbn = "0140449116";
-
-        StockManager stockManager = new StockManager(testWebService, testDatabaseService);
-        // Stub -> substitute some dependency of our business logic
-        // stockManager.setWebService(testService);
-
-        String locatorCode = stockManager.getLocatorCode(isbn);
+        String locatorCode = stockManager.getLocatorCode(ISBN);
 
         assertEquals("9116H1", locatorCode);
     }
 
     @Test
     public void databaseIsUsedIfDataIsPresent() {
-        final String isbn = "0140449116";
+        // Stub
+        when(testDatabaseService.lookup(ISBN)).thenReturn(new Book(ISBN, "abc", "abc"));
 
-        final IExternalISBNDataService webService = mock(IExternalISBNDataService.class);
-        final IExternalISBNDataService databaseService = mock(IExternalISBNDataService.class);
+        final String locatorCode = stockManager.getLocatorCode(ISBN);
 
-        when(databaseService.lookup(isbn)).thenReturn(new Book(isbn, "abc", "abc"));
-
-        final StockManager stockManager = new StockManager(webService, databaseService);
-
-        final String locatorCode = stockManager.getLocatorCode(isbn);
-
-        verify(databaseService, times(1)).lookup(isbn);
-        verify(webService, never()).lookup(isbn);
+        // Mock
+        verify(testDatabaseService, times(1)).lookup(ISBN);
+        verify(testWebService, never()).lookup(ISBN);
     }
 
     @Test
     public void webserviceIsUsedIfDataIsNotPresentInDatabase() {
-        final String isbn = "0140449116";
+        when(testDatabaseService.lookup(ISBN)).thenReturn(null);
+        when(testWebService.lookup(ISBN)).thenReturn(new Book(ISBN, "abc", "abc"));
 
-        final IExternalISBNDataService webService = mock(IExternalISBNDataService.class);
-        final IExternalISBNDataService databaseService = mock(IExternalISBNDataService.class);
-
-        when(databaseService.lookup(isbn)).thenReturn(null);
-        when(webService.lookup(isbn)).thenReturn(new Book(isbn, "abc", "abc"));
-
-        final StockManager stockManager = new StockManager(webService, databaseService);
-
-        final String locatorCode = stockManager.getLocatorCode(isbn);
+        final String locatorCode = stockManager.getLocatorCode(ISBN);
 
         // time(1) is default
-        verify(databaseService).lookup(isbn);
+        verify(testDatabaseService).lookup(ISBN);
         // could change isbn to anyString() or any(Object.class)
-        verify(webService).lookup(isbn);
+        verify(testWebService).lookup(ISBN);
     }
+
+    /*
+     * Stubs -> used to test DATA
+     * Mocks -> used to test BEAHVIOUR
+     * Fakes or Dummies -> override without returning data/receiving implementation (No tests)
+     */
 }
