@@ -61,5 +61,6 @@ public class StockManagementTest {
      * Stubs -> used to test DATA
      * Mocks -> used to test BEAHVIOUR
      * Fakes or Dummies -> override without returning data/receiving implementation (No tests)
+     * Tautology -> when the test code is equal than what you're testing
      */
 }
